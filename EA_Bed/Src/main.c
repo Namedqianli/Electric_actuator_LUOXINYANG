@@ -34,6 +34,16 @@ typedef struct
   __IO int      PrevError;                                //Error[-2]
 }PID_TypeDef;
 
+typedef enum
+{
+	ACTION_BACK_UP			= 1,
+	ACTION_BACK_DOWN		= 2,
+	ACTION_THIGH_UP			= 3,
+	ACTION_THIGH_DOWN		= 4,
+	ACTION_CHAIR				= 5,
+	ACTION_BED					= 6,
+}action_t;
+
 /* 私有宏定义 ----------------------------------------------------------------*/
 
 /*************************************/
@@ -50,6 +60,8 @@ typedef struct
 __IO uint8_t  Start_flag = 0;       // PID 开始标志
 __IO uint32_t Motor_Dir = CW;             // 电机方向
 __IO int32_t Loc_Pulse;              // 编码器捕获值 Pulse
+uint8_t Bed_status = 0;
+uint8_t Is_running = 0;
 
 /* 扩展变量 ------------------------------------------------------------------ */
 extern __IO uint32_t uwTick;
@@ -116,6 +128,8 @@ void SystemClock_Config(void)
   */
 int main(void)
 {
+	uint8_t nrf_rx_buf[16] = {0};
+	
   /* 复位所有外设，初始化Flash接口和系统滴答定时器 */
   HAL_Init();
   /* 配置系统时钟 */
@@ -141,35 +155,48 @@ int main(void)
   /* 无限循环 */
   while (1)
   {
-    /* 停止按钮 */
-    if(KEY1_StateRead()==KEY_DOWN)
-    {
-      if(sPID.SetPoint > 0)
-      {
-        Motor_Dir = CCW;
-        BDDCMOTOR_DIR_CCW();
-      }
-      else
-      {
-        Motor_Dir = CW;
-        BDDCMOTOR_DIR_CW();
-      }
-      Start_flag = 1;
-    }
-    if(KEY2_StateRead()==KEY_DOWN)
-    {
-      SHUTDOWN_MOTOR();
-      HAL_TIM_PWM_Stop(&htimx_BDCMOTOR,TIM_CHANNEL_1);
-      HAL_TIMEx_PWMN_Stop(&htimx_BDCMOTOR,TIM_CHANNEL_1);         // 停止输出
-    }
-    if(KEY3_StateRead()==KEY_DOWN)//加速
-    {
-      sPID.SetPoint += 11880; // +1 r
-    }
-    if(KEY4_StateRead()==KEY_DOWN)//减速
-    {
-      sPID.SetPoint -= 11880; // -1 r
-    }
+//    /* 停止按钮 */
+//    if(KEY1_StateRead()==KEY_DOWN)
+//    {
+//      if(sPID.SetPoint > 0)
+//      {
+//        Motor_Dir = CCW;
+//        BDDCMOTOR_DIR_CCW();
+//      }
+//      else
+//      {
+//        Motor_Dir = CW;
+//        BDDCMOTOR_DIR_CW();
+//      }
+//      Start_flag = 1;
+//    }
+//    if(KEY2_StateRead()==KEY_DOWN)
+//    {
+//      SHUTDOWN_MOTOR();
+//      HAL_TIM_PWM_Stop(&htimx_BDCMOTOR,TIM_CHANNEL_1);
+//      HAL_TIMEx_PWMN_Stop(&htimx_BDCMOTOR,TIM_CHANNEL_1);         // 停止输出
+//    }
+//    if(KEY3_StateRead()==KEY_DOWN)//加速
+//    {
+//      sPID.SetPoint += 11880; // +1 r
+//    }
+//    if(KEY4_StateRead()==KEY_DOWN)//减速
+//    {
+//      sPID.SetPoint -= 11880; // -1 r
+//    }
+		// receive data
+		if(NRF24L01_RxPacket(nrf_rx_buf) == 0 && Is_running == 0) {
+			switch (nrf_rx_buf[0]) {
+				case ACTION_BACK_UP:
+					break;
+				case ACTION_BACK_DOWN:
+					break;
+				case ACTION_CHAIR:
+					break;
+				case ACTION_BED:
+					break;
+			}
+		}
   }
 }
 
