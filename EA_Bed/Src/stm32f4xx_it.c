@@ -36,14 +36,13 @@
 #include "stm32f4xx_it.h"
 
 /* USER CODE BEGIN 0 */
-#include "encoder/bsp_encoder.h" 
-#include "DCMotor/bsp_BDCMotor.h" 
+#include "encoder/bsp_encoder.h"
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
 
 /******************************************************************************/
-/*            Cortex-M4 Processor Interruption and Exception Handlers         */ 
+/*            Cortex-M4 Processor Interruption and Exception Handlers         */
 /******************************************************************************/
 
 /**
@@ -186,16 +185,19 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /* USER CODE BEGIN 1 */
-void ENCODER_TIM_IRQHANDLER(void)
+/**
+* @brief This function handles General-purpose timer.
+*/
+void ENCODER1_TIM_IRQHANDLER(void)
 {
-  HAL_TIM_IRQHandler(&htimx_Encoder);
+  HAL_TIM_IRQHandler(&htimx_Encoder1);
 }
-void TIM1_UP_TIM10_IRQHandler()
+/**
+* @brief This function handles General-purpose timer.
+*/
+void ENCODER2_TIM_IRQHANDLER(void)
 {
-//  HAL_TIM_IRQHandler(&htimx_BDCMOTOR);
+  HAL_TIM_IRQHandler(&htimx_Encoder2);
 }
-void TIM1_CC_IRQHandler()
-{
-//  HAL_TIM_IRQHandler(&htimx_BDCMOTOR);
-}
+/* USER CODE END 1 */
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

@@ -2,9 +2,9 @@
   ******************************************************************************
   * 文件名程: main.c
   * 作    者: 硬石嵌入式开发团队
-  * 版    本: V1.0
-  * 编写日期: 2018-01-13
-  * 功    能: 有刷直流电机位置闭环控制_位置式PID
+  * 版    本: V1.1
+  * 编写日期: 2018-03-06
+  * 功    能: 2轴直流有刷电机_编码器测速
   ******************************************************************************
   * 说明：
   * 本例程配套硬石stm32开发板YS-F1Pro使用。
@@ -16,63 +16,24 @@
   */
 /* 包含头文件 ----------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
+#include "DCMotor/bsp_BDCMotor.h"
 #include "key/bsp_key.h"
 #include "encoder/bsp_encoder.h"
 #include "usart/bsp_usartx.h"
-#include "DCMotor/bsp_BDCMotor.h"
-#include "led/bsp_led.h"
-#include "nrf24l01/nrf24l01.h"
 /* 私有类型定义 --------------------------------------------------------------*/
-typedef struct
-{
-  __IO int32_t  SetPoint;                                 //设定目标 Desired Value
-  __IO float    SumError;                                //误差累计
-  __IO float    Proportion;                               //比例常数 Proportional Const
-  __IO float    Integral;                                 //积分常数 Integral Const
-  __IO float    Derivative;                               //微分常数 Derivative Const
-  __IO int      LastError;                                //Error[-1]
-  __IO int      PrevError;                                //Error[-2]
-}PID_TypeDef;
-
-typedef enum
-{
-	ACTION_BACK_UP			= 1,
-	ACTION_BACK_DOWN		= 2,
-	ACTION_THIGH_UP			= 3,
-	ACTION_THIGH_DOWN		= 4,
-	ACTION_CHAIR				= 5,
-	ACTION_BED					= 6,
-}action_t;
-
+#define ENCODER1_LINE     11           // 编码器线数
+#define ENCODER1_SPEEDRATIO  270       // 电机减速比
+#define ENCODER1_PPR         (ENCODER1_SPEEDRATIO*ENCODER1_LINE*4) // Pulse/r 每圈可捕获的脉冲数
+#define ENCODER2_LINE     11           // 编码器线数
+#define ENCODER2_SPEEDRATIO  270       // 电机减速比
+#define ENCODER2_PPR         (ENCODER2_SPEEDRATIO*ENCODER2_LINE*4) // Pulse/r 每圈可捕获的脉冲数
 /* 私有宏定义 ----------------------------------------------------------------*/
-
-/*************************************/
-// 定义PID相关宏
-// 这三个参数设定对电机运行影响非常大
-// PID参数跟采样时间息息相关
-/*************************************/
-#define  SPD_P_DATA      1.025f        // P参数
-#define  SPD_I_DATA      0.215f        // I参数
-#define  SPD_D_DATA      0.1f         // D参数
-#define  TARGET_LOC    11880        // 目标速度    1 r
-
 /* 私有变量 ------------------------------------------------------------------*/
-__IO uint8_t  Start_flag = 0;       // PID 开始标志
-__IO uint32_t Motor_Dir = CW;             // 电机方向
-__IO int32_t Loc_Pulse;              // 编码器捕获值 Pulse
-uint8_t Bed_status = 0;
-uint8_t Is_running = 0;
-
-/* 扩展变量 ------------------------------------------------------------------ */
-extern __IO uint32_t uwTick;
-
-/* PID结构体 */
-PID_TypeDef  sPID;               // PID参数结构体
-
+__IO uint8_t  start_flag=0;
+__IO uint16_t time_count=0;        // 时间计数，每1ms增加一(与滴定时器频率有关)
+__IO int32_t CaptureNumber=0;     // 输入捕获数
 /* 扩展变量 ------------------------------------------------------------------*/
 /* 私有函数原形 --------------------------------------------------------------*/
-void PID_ParamInit(void) ;
-int32_t LocPIDCalc(int32_t NextPoint);
 /* 函数体 --------------------------------------------------------------------*/
 /**
   * 函数功能: 系统时钟配置
@@ -82,6 +43,7 @@ int32_t LocPIDCalc(int32_t NextPoint);
   */
 void SystemClock_Config(void)
 {
+
   RCC_OscInitTypeDef RCC_OscInitStruct;
   RCC_ClkInitTypeDef RCC_ClkInitStruct;
 
@@ -128,75 +90,79 @@ void SystemClock_Config(void)
   */
 int main(void)
 {
-	uint8_t nrf_rx_buf[16] = {0};
-	
   /* 复位所有外设，初始化Flash接口和系统滴答定时器 */
   HAL_Init();
   /* 配置系统时钟 */
   SystemClock_Config();
-  /* 串口初始化 */
+    /* 串口初始化 */
   MX_USARTx_Init();
-	/* NRF24L01初始化 */
-	NRF24L01_Init();
-	NRF24L01_RX_Mode();
-  /* LED初始化 */
-  LED_GPIO_Init();
   /* 按键初始化 */
   KEY_GPIO_Init();
+
   /* 编码器初始化及使能编码器模式 */
-  ENCODER_TIMx_Init();
-	/* 高级控制定时器初始化并配置PWM输出功能 */
-  BDCMOTOR_TIMx_Init();
-  /* 设定占空比 */
-  PWM_Duty = 0;
-  SetMotorSpeed(PWM_Duty);  // 0%
-  /* PID 参数初始化 */
-  PID_ParamInit();
+  ENCODER1_TIMx_Init();
+  ENCODER2_TIMx_Init();
+
+  PWM_Duty1 = 500;
+  PWM_Duty2 = 500;
+  SetMotor1Speed( PWM_Duty1 );
+  SetMotor2Speed( PWM_Duty1 );
+  /* 高级控制定时器初始化并配置PWM输出功能 */
+  BDCMOTOR1_TIMx_Init();
+  BDCMOTOR2_TIMx_Init();
+  start_flag = 1;
   /* 无限循环 */
   while (1)
   {
-//    /* 停止按钮 */
-//    if(KEY1_StateRead()==KEY_DOWN)
-//    {
-//      if(sPID.SetPoint > 0)
-//      {
-//        Motor_Dir = CCW;
-//        BDDCMOTOR_DIR_CCW();
-//      }
-//      else
-//      {
-//        Motor_Dir = CW;
-//        BDDCMOTOR_DIR_CW();
-//      }
-//      Start_flag = 1;
-//    }
-//    if(KEY2_StateRead()==KEY_DOWN)
-//    {
-//      SHUTDOWN_MOTOR();
-//      HAL_TIM_PWM_Stop(&htimx_BDCMOTOR,TIM_CHANNEL_1);
-//      HAL_TIMEx_PWMN_Stop(&htimx_BDCMOTOR,TIM_CHANNEL_1);         // 停止输出
-//    }
-//    if(KEY3_StateRead()==KEY_DOWN)//加速
-//    {
-//      sPID.SetPoint += 11880; // +1 r
-//    }
-//    if(KEY4_StateRead()==KEY_DOWN)//减速
-//    {
-//      sPID.SetPoint -= 11880; // -1 r
-//    }
-		// receive data
-		if(NRF24L01_RxPacket(nrf_rx_buf) == 0 && Is_running == 0) {
-			switch (nrf_rx_buf[0]) {
-				case ACTION_BACK_UP:
-					break;
-				case ACTION_BACK_DOWN:
-					break;
-				case ACTION_CHAIR:
-					break;
-				case ACTION_BED:
-					break;
-			}
-		}
+    /* 电机1加速  */
+    if(KEY1_StateRead() == KEY_DOWN)
+    {
+      PWM_Duty1 += 100;
+      if(PWM_Duty1 >= BDCMOTOR1_TIM_PERIOD)
+      {
+        PWM_Duty1 = BDCMOTOR1_DUTY_FULL;
+      }
+      SetMotor1Speed( PWM_Duty1 );
+    }
+    /* 电机1减速 */
+    if(KEY2_StateRead() == KEY_DOWN)
+    {
+      PWM_Duty1 -= 100;
+      if(PWM_Duty1 <= BDCMOTOR1_DUTY_ZERO)
+      {
+        PWM_Duty1 = BDCMOTOR1_DUTY_ZERO;
+      }
+      SetMotor1Speed( PWM_Duty1 );
+    }
+    /* 电机2加速  */
+    if(KEY3_StateRead() == KEY_DOWN)
+    {
+      PWM_Duty2 += 100;
+      if(PWM_Duty2 >= BDCMOTOR2_TIM_PERIOD)
+      {
+        PWM_Duty2 = BDCMOTOR2_DUTY_FULL;
+      }
+      SetMotor2Speed( PWM_Duty2 );
+    }
+    /* 电机2减速 */
+    if(KEY4_StateRead() == KEY_DOWN)
+    {
+      PWM_Duty2 -= 100;
+      if(PWM_Duty2 <= BDCMOTOR2_DUTY_ZERO)
+      {
+        PWM_Duty2 = BDCMOTOR2_DUTY_ZERO;
+      }
+      SetMotor2Speed( PWM_Duty2 );
+    }
+   /* 停止 */
+    if(KEY5_StateRead() == KEY_DOWN)
+    {
+      HAL_TIM_PWM_Stop(&htimx_BDCMOTOR1,TIM_CHANNEL_1);
+      HAL_TIMEx_PWMN_Stop(&htimx_BDCMOTOR1,TIM_CHANNEL_1);
+
+      HAL_TIM_PWM_Stop(&htimx_BDCMOTOR2,TIM_CHANNEL_1);
+      HAL_TIMEx_PWMN_Stop(&htimx_BDCMOTOR2,TIM_CHANNEL_1);
+    }
   }
 }
 
@@ -208,87 +174,38 @@ int main(void)
   */
 void HAL_SYSTICK_Callback(void)
 {
-  int32_t tmpPWM_Duty = 0;
-  /* 速度环周期100ms */
-  if(uwTick % 100 == 0)
+  if(start_flag) // 等待脉冲输出后才开始计时
   {
-    Loc_Pulse = (OverflowCount*CNT_MAX) + (int32_t)__HAL_TIM_GET_COUNTER(&htimx_Encoder);
-
-    /* 计算PID结果 */
-    if(Start_flag == 1)
+    time_count++;         // 每1ms自动增一
+    if(time_count==1000)  // 1s
     {
-      /* 限定速度 */
-      PWM_Duty = LocPIDCalc(Loc_Pulse);
-      if(PWM_Duty >= BDCMOTOR_DUTY_FULL/2)
-        PWM_Duty = BDCMOTOR_DUTY_FULL/2;
-      if(PWM_Duty <= -BDCMOTOR_DUTY_FULL/2)
-        PWM_Duty = -BDCMOTOR_DUTY_FULL/2;
+      float Speed = 0;
+      /* 读取编码器1数值 */
+      CaptureNumber = ( int32_t )__HAL_TIM_GET_COUNTER(&htimx_Encoder1)+ENCODER1_OverflowCNT*65536;
+      printf("Input1:%d \n",CaptureNumber);
+      // 4 : 使用定时器编码器接口捕获AB相的上升沿和下降沿，一个脉冲*4.
+      // 11：编码器线数(转速一圈输出脉冲数)
+      // 270：电机减数比，内部电机转动圈数与电机输出轴转动圈数比，即减速齿轮比
+      Speed = (float)CaptureNumber/ENCODER1_PPR;
+      printf("电机1实际转动速度%0.2f r/s \n",Speed);
+      ENCODER1_OverflowCNT = 0;
+      __HAL_TIM_SET_COUNTER(&htimx_Encoder1,0);
 
-      /* 判断当前运动方向 */
-      if(PWM_Duty < 0)
-      {
-        Motor_Dir = CW;
-        BDDCMOTOR_DIR_CW();
-        tmpPWM_Duty = -PWM_Duty;
-      }
-      else
-      {
-        Motor_Dir = CCW;
-        BDDCMOTOR_DIR_CCW();
-        tmpPWM_Duty = PWM_Duty;
-      }
-      /* 输出PWM */
-      SetMotorSpeed( tmpPWM_Duty );
+      /* ------------------------------------------------------------- */
+      CaptureNumber = ( int32_t )__HAL_TIM_GET_COUNTER(&htimx_Encoder2)+ENCODER2_OverflowCNT*65536;
+      printf("Input2:%d \n",CaptureNumber);
+      // 4 : 使用定时器编码器接口捕获AB相的上升沿和下降沿，一个脉冲*4.
+      // 11：编码器线数(转速一圈输出脉冲数)
+      // 270：电机减数比，内部电机转动圈数与电机输出轴转动圈数比，即减速齿轮比
+      Speed = (float)CaptureNumber/ENCODER2_PPR;
+      printf("电机2实际转动速度%0.2f r/s \n",Speed);
+      ENCODER2_OverflowCNT = 0;
+      __HAL_TIM_SET_COUNTER(&htimx_Encoder2,0);
+
+      time_count=0;
     }
-    printf(" Loc: %d (Pulse) = %.3f (r) \n",Loc_Pulse, (float)Loc_Pulse/11880.0f);
   }
 }
-/******************** PID 控制设计 ***************************/
-/**
-  * 函数功能: PID参数初始化
-  * 输入参数: 无
-  * 返 回 值: 无
-  * 说    明: 无
-  */
-void PID_ParamInit()
-{
-    sPID.LastError = 0;               // Error[-1]
-    sPID.PrevError = 0;               // Error[-2]
-    sPID.Proportion = SPD_P_DATA; // 比例常数 Proportional Const
-    sPID.Integral = SPD_I_DATA;   // 积分常数  Integral Const
-    sPID.Derivative = SPD_D_DATA; // 微分常数 Derivative Const
-    sPID.SetPoint = TARGET_LOC;     // 设定目标Desired Value
-}
-/**
-  * 函数名称：位置闭环PID控制设计
-  * 输入参数：当前控制量
-  * 返 回 值：目标控制量
-  * 说    明：无
-  */
-int32_t LocPIDCalc(int32_t NextPoint)
-{
-  int32_t iError,dError;
-  iError = sPID.SetPoint - NextPoint; //偏差
 
-  if( (iError<50) && (iError>-50) )
-    iError = 0;
-
-  /* 限定积分区域 */
-  if((iError<400 )&& (iError>-400))
-  {
-    sPID.SumError += iError; //积分
-    /* 设定积分上限 */
-    if(sPID.SumError >= (TARGET_LOC*10))
-       sPID.SumError  = (TARGET_LOC*10);
-    if(sPID.SumError <= -(TARGET_LOC*10))
-      sPID.SumError = -(TARGET_LOC*10);
-  }
-
-  dError = iError - sPID.LastError; //微分
-  sPID.LastError = iError;
-  return (int32_t)( (sPID.Proportion * (float)iError) //比例项
-                    + (sPID.Integral * (float)sPID.SumError) //积分项
-                    + (sPID.Derivative * (float)dError) ); //微分项
-}
 
 /******************* (C) COPYRIGHT 2015-2020 硬石嵌入式开发团队 *****END OF FILE****/
