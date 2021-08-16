@@ -1,5 +1,5 @@
-#ifndef __nrf24L01_H
-#define __nrf24L01_H
+#ifndef __BSP_NRF24L01_H
+#define __BSP_NRF24L01_H
  
 #include "stdint.h"
  

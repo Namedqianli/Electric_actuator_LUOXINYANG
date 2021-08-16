@@ -1,4 +1,4 @@
-#include "nrf24l01/nrf24l01.h"
+#include "nrf24l01/bsp_nrf24l01.h"
 #include "stm32f4xx_hal.h"
  
 SPI_HandleTypeDef hspi1;
