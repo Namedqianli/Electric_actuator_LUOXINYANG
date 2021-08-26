@@ -1,7 +1,7 @@
 #ifndef _KEY_H_
 #define _KEY_H_
 
-#include <reg51.h>
+#include <reg52.h>
 
 #define uint8_t unsigned char
 #define uchar unsigned char

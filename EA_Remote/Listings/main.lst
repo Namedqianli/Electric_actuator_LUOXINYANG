@@ -1,0 +1,112 @@
+C51 COMPILER V9.60.0.0   MAIN                                                              08/26/2021 20:15:10 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: E:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(.\nrf24l01;.\key) DEBUG OBJECTEXT
+                    -END PRINT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+*** WARNING C500 IN LINE 1 OF main.c: LICENSE ERROR (R207(3): REGISTRY READ ERROR)
+
+   1          #include "reg52.h"
+   2          #include "stdio.h"
+   3          #include "nrf24l01.h"
+   4          #include "key.h"
+   5          
+   6          #define uchar unsigned char
+   7          #define uint unsigned int 
+   8          
+   9          void uart_cfg();
+  10          void send_byte(uchar by);
+  11          void send_string(uchar *p);
+  12          void delayms(uchar i);
+  13          
+  14          uchar str[] = {"aaaaaaa"};
+  15          
+  16          void main()
+  17          {
+  18   1        uart_cfg(); //²¨ÌØÂÊ4800    ,0xf9
+  19   1        NRF24L01Int();
+  20   1        while(NRF24L01_Check())
+  21   1          send_string("Error\n");
+  22   1        send_string("Successed!\n");
+  23   1        NRFSetRXMode();
+  24   1      
+  25   1        while(1){
+  26   2          if(NRFRevDate(str)) {
+  27   3            send_string(str);
+  28   3          }     
+  29   2      //    NRFSetTxMode(str);
+  30   2      //    NRFDelay(1000);
+  31   2        }
+  32   1      }
+  33          
+  34           void uart_cfg()
+  35          {
+  36   1        SCON = 0X50;//MODE 1
+  37   1        TMOD&= 0X0F;//Çå³ýT1µÄ¿ØÖÆÎ»
+  38   1        TMOD|= 0X20;//T1µÄ¹¤×÷Ä£Ê½2
+  39   1        PCON|= 0X80;//±¶Æµ
+  40   1      
+  41   1        TH1 = 0xf3; //4800
+  42   1        TL1 = TH1;
+  43   1      
+  44   1        ET1 = 0;//½ûÖ¹T1ÖÐ¶Ï 
+  45   1        //      EA = 1; 
+  46   1        TR1 = 1;      
+  47   1        //      ES = 1;//Ê¹ÄÜ´®¿ÚÖÐ¶Ï ,ÎÞÂÛÊÇTI/RI³öÏÖ£¬Ö»ÒªÖÐ¶Ï´ò¿ª£¬µ¥Æ¬»ú¾Í½øÈëÖÐ¶Ïº¯Êý¡£
+  48   1      }
+  49          
+  50           /*ÖÐ¶Ï´¦Àíº¯Êý*/
+  51          // void uart_interrupt() interrupt 4{
+  52          //
+  53          //        if(RI==1)RI = 0;
+C51 COMPILER V9.60.0.0   MAIN                                                              08/26/2021 20:15:10 PAGE 2   
+
+  54          //
+  55          //        if(TI==1);
+  56          //               //TI = 0;
+  57          //    }
+  58          
+  59           
+  60          /*·¢ËÍÒ»¸ö ×Ö·û*/
+  61          void send_byte(uchar by)
+  62          {
+  63   1        SBUF = by;
+  64   1        while(!TI);//µ±Ð´ÏÂÕâ¾äµÄÊ±ºò£¬¾Í²»ÒªÔÚÖÐ¶Ïº¯ÊýÀïÃæÔÚÐ´TI = 0;Õâ¾äÁË£¬²»È»½øÈëÖÐ¶Ïº¯Êý½«TIÇåÁãÖ®ºó£¬³ÌÐò¾
+             -Í»áÒ»Ö±¿¨ÔÚÕâÀï
+  65   1        TI = 0;       //ÔÚÕâÀï½«TIÇåÁã
+  66   1      }
+  67          /*·¢ËÍÒ»¸ö×Ö·û´®*/
+  68          void send_string(uchar *p)
+  69          {
+  70   1        while(*p!= '\0'){
+  71   2          send_byte(*p);
+  72   2          p++;
+  73   2        }
+  74   1      }
+  75          /*¼òµ¥ÑÓÊ±*/
+  76          void delayms(uchar i)
+  77          {
+  78   1        uint j;
+  79   1        while(i--)
+  80   1        {
+  81   2          for(j = 0; j < 150; j++);
+  82   2        }
+  83   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    134    ----
+   CONSTANT SIZE    =     19    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      8    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)

@@ -144,8 +144,8 @@ void BDCMOTOR1_TIMx_Init(void)
   HAL_TIM_Base_Start(&htimx_BDCMOTOR1);
 
     /* 启动定时器通道和互补通道PWM输出 */
-  HAL_TIM_PWM_Start(&htimx_BDCMOTOR1,TIM_CHANNEL_1);
-  HAL_TIMEx_PWMN_Stop(&htimx_BDCMOTOR1,TIM_CHANNEL_1);
+//  HAL_TIM_PWM_Start(&htimx_BDCMOTOR1,TIM_CHANNEL_1);
+//  HAL_TIMEx_PWMN_Stop(&htimx_BDCMOTOR1,TIM_CHANNEL_1);
 
 }
 
@@ -263,8 +263,8 @@ void BDCMOTOR2_TIMx_Init(void)
   HAL_TIM_Base_Start(&htimx_BDCMOTOR2);
 
     /* 启动定时器通道和互补通道PWM输出 */
-  HAL_TIM_PWM_Start(&htimx_BDCMOTOR2,TIM_CHANNEL_1);
-  HAL_TIMEx_PWMN_Stop(&htimx_BDCMOTOR2,TIM_CHANNEL_1);
+//  HAL_TIM_PWM_Start(&htimx_BDCMOTOR2,TIM_CHANNEL_1);
+//  HAL_TIMEx_PWMN_Stop(&htimx_BDCMOTOR2,TIM_CHANNEL_1);
 
 }
 

@@ -413,6 +413,11 @@
               <FileType>1</FileType>
               <FilePath>..\Src\stm32f4xx_assert.c</FilePath>
             </File>
+            <File>
+              <FileName>global_config.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Src\global_config.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -994,6 +999,11 @@
               <FileName>bsp_nrf24l01.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Src\bsp\nrf24l01\bsp_nrf24l01.c</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_actuator.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\bsp\actuator\bsp_actuator.c</FilePath>
             </File>
           </Files>
         </Group>
