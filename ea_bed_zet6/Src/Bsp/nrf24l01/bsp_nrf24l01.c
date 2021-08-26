@@ -2,6 +2,8 @@
 #include "spi.h"
 #include "gpio.h"
 
+#include <stdio.h>
+
 const uint8_t TX_ADDRESS[TX_ADR_WIDTH]={0x34,0x43,0x10,0x10,0x01}; //发送地址
 const uint8_t RX_ADDRESS[RX_ADR_WIDTH]={0x34,0x43,0x10,0x10,0x01}; //接收地址
  
@@ -52,7 +54,7 @@ void NRF24L01_Init(void)
 	MX_GPIO_Init();
 	NRF24L01_SPI_Init();                			//针对NRF的特点修改SPI的设置
 	NRF24L01_CE_LOW(); 			            			//使能24L01
-	NRF24L01_SPI_CS_DISABLE();			    			//SPI片选取消	 		 	 
+	NRF24L01_SPI_CS_ENABLE();			    				//SPI片选取消	 		 	 
 }
  
 /**
@@ -194,9 +196,7 @@ uint8_t NRF24L01_TxPacket(uint8_t *txbuf)
 	NRF24L01_CE_LOW();
 	NRF24L01_Write_Buf(WR_TX_PLOAD,txbuf,TX_PLOAD_WIDTH);//写数据到TX BUF  32个字节
 	NRF24L01_CE_HIGH();//启动发送	 
-
 	while(NRF24L01_IRQ_PIN_READ()!=0);//等待发送完成
-
 	sta=NRF24L01_Read_Reg(STATUS);  //读取状态寄存器的值	   
 	NRF24L01_Write_Reg(NRF_WRITE_REG+STATUS,sta); //清除TX_DS或MAX_RT中断标志
 	if(sta&MAX_TX)//达到最大重发次数

@@ -1,0 +1,248 @@
+C51 COMPILER V9.60.0.0   SI24R1                                                            08/27/2021 05:21:57 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE SI24R1
+OBJECT MODULE PLACED IN .\Objects\SI24R1.obj
+COMPILER INVOKED BY: E:\Keil_v5\C51\BIN\C51.EXE nrf24l01\SI24R1.c OPTIMIZE(8,SPEED) BROWSE INCDIR(.\nrf24l01;.\key) DEBU
+                    -G OBJECTEXTEND PRINT(.\Listings\SI24R1.lst) TABS(2) OBJECT(.\Objects\SI24R1.obj)
+
+line level    source
+
+*** WARNING C500 IN LINE 1 OF nrf24l01\SI24R1.c: LICENSE ERROR (R207(3): REGISTRY READ ERROR)
+
+   1          #include "SI24R1.h"
+   2          
+   3          sbit CE=P1^5;  //RX0/TXÄ£Ê½Ñ¡Ôñ¶Ë
+   4          sbit CSN=P1^4; //SPIÆ¬Ñ¡¶Ë//¾ÍÊÇSS
+   5          sbit SCK=P1^3;    //SPIÊ±ÖÓ¶Ë
+   6          sbit MOSI=P1^2;    //SPIÖ÷»úÊä³ö´Ó»úÊäÈë¶Ë
+   7          sbit MISO=P1^1;    //SPIÖ÷»úÊä³ö´Ó»úÊä³ö¶Ë
+   8          sbit IRQ=P1^0; //¿ÉÆÁ±ÎÖÐ¶Ï¶Ë
+   9          
+  10          u8 code TX_ADDRESS[TX_ADR_WIDTH] = {0x34,0x43,0x10,0x10,0x01};  // ¶¨ÒåÒ»¸ö¾²Ì¬·¢ËÍµØÖ·
+  11          
+  12          static u8 SPI_RW(u8 byte)
+  13          {
+  14   1        u8 bit_ctr;
+  15   1        for(bit_ctr=0; bit_ctr<8; bit_ctr++)
+  16   1        {
+  17   2          if(byte & 0x80)
+  18   2            MOSI = 1;
+  19   2          else
+  20   2            MOSI = 0;                                
+  21   2          byte = (byte << 1);                      
+  22   2          SCK = 1;                                   
+  23   2          byte |= MISO;                             
+  24   2          SCK = 0;                                
+  25   2        }
+  26   1        return(byte);                              
+  27   1      }
+  28          
+  29          
+  30          /********************************************************
+  31          º¯Êý¹¦ÄÜ£ºSI24R1Òý½Å³õÊ¼»¯                
+  32          Èë¿Ú²ÎÊý£ºÎÞ
+  33          ·µ»Ø  Öµ£ºÎÞ
+  34          *********************************************************/
+  35          void SI24R1_Init(void)
+  36          {
+  37   1        SCK = 0;                          //SPIÊ±ÖÓÏßÀ­µÍ
+  38   1        CSN = 1;        
+  39   1        CE  = 0;        
+  40   1        IRQ = 1;
+  41   1      }
+  42          
+  43          
+  44          /********************************************************
+  45          º¯Êý¹¦ÄÜ£ºÐ´¼Ä´æÆ÷µÄÖµ£¨µ¥×Ö½Ú£©                
+  46          Èë¿Ú²ÎÊý£ºreg:¼Ä´æÆ÷Ó³ÉäµØÖ·£¨¸ñÊ½£ºWRITE_REG£üreg£©
+  47                    value:¼Ä´æÆ÷µÄÖµ
+  48          ·µ»Ø  Öµ£º×´Ì¬¼Ä´æÆ÷µÄÖµ
+  49          *********************************************************/
+  50          u8 SI24R1_Write_Reg(u8 reg, u8 value)
+  51          {
+  52   1        u8 status;
+  53   1      
+C51 COMPILER V9.60.0.0   SI24R1                                                            08/27/2021 05:21:57 PAGE 2   
+
+  54   1        CSN = 0;                 
+  55   1        status = SPI_RW(reg);       
+  56   1        SPI_RW(value);
+  57   1        CSN = 1;  
+  58   1        
+  59   1        return(status);
+  60   1      }
+  61          
+  62          
+  63          /********************************************************
+  64          º¯Êý¹¦ÄÜ£ºÐ´¼Ä´æÆ÷µÄÖµ£¨¶à×Ö½Ú£©                  
+  65          Èë¿Ú²ÎÊý£ºreg:¼Ä´æÆ÷Ó³ÉäµØÖ·£¨¸ñÊ½£ºWRITE_REG£üreg£©
+  66                    pBuf:Ð´Êý¾ÝÊ×µØÖ·
+  67                    bytes:Ð´Êý¾Ý×Ö½ÚÊý
+  68          ·µ»Ø  Öµ£º×´Ì¬¼Ä´æÆ÷µÄÖµ
+  69          *********************************************************/
+  70          u8 SI24R1_Write_Buf(u8 reg, const u8 *pBuf, u8 bytes)
+  71          {
+  72   1        u8 status,byte_ctr;
+  73   1      
+  74   1        CSN = 0;                                        
+  75   1        status = SPI_RW(reg);                          
+  76   1        for(byte_ctr=0; byte_ctr<bytes; byte_ctr++)     
+  77   1          SPI_RW(*pBuf++);
+  78   1        CSN = 1;                                        
+  79   1      
+  80   1        return(status);       
+  81   1      }                            
+  82          
+  83          
+  84          /********************************************************
+  85          º¯Êý¹¦ÄÜ£º¶ÁÈ¡¼Ä´æÆ÷µÄÖµ£¨µ¥×Ö½Ú£©                  
+  86          Èë¿Ú²ÎÊý£ºreg:¼Ä´æÆ÷Ó³ÉäµØÖ·£¨¸ñÊ½£ºREAD_REG£üreg£©
+  87          ·µ»Ø  Öµ£º¼Ä´æÆ÷Öµ
+  88          *********************************************************/
+  89          u8 SI24R1_Read_Reg(u8 reg)
+  90          {
+  91   1        u8 value;
+  92   1      
+  93   1        CSN = 0;    
+  94   1        SPI_RW(reg);      
+  95   1        value = SPI_RW(0);
+  96   1        CSN = 1;              
+  97   1      
+  98   1        return(value);
+  99   1      }
+ 100          
+ 101          
+ 102          /********************************************************
+ 103          º¯Êý¹¦ÄÜ£º¶ÁÈ¡¼Ä´æÆ÷µÄÖµ£¨¶à×Ö½Ú£©                  
+ 104          Èë¿Ú²ÎÊý£ºreg:¼Ä´æÆ÷Ó³ÉäµØÖ·£¨READ_REG£üreg£©
+ 105                    pBuf:½ÓÊÕ»º³åÇøµÄÊ×µØÖ·
+ 106                    bytes:¶ÁÈ¡×Ö½ÚÊý
+ 107          ·µ»Ø  Öµ£º×´Ì¬¼Ä´æÆ÷µÄÖµ
+ 108          *********************************************************/
+ 109          u8 SI24R1_Read_Buf(u8 reg, u8 *pBuf, u8 bytes)
+ 110          {
+ 111   1        u8 status,byte_ctr;
+ 112   1      
+ 113   1        CSN = 0;                                        
+ 114   1        status = SPI_RW(reg);                           
+ 115   1        for(byte_ctr=0;byte_ctr<bytes;byte_ctr++)
+C51 COMPILER V9.60.0.0   SI24R1                                                            08/27/2021 05:21:57 PAGE 3   
+
+ 116   1          pBuf[byte_ctr] = SPI_RW(0);                   //¶ÁÈ¡Êý¾Ý£¬µÍ×Ö½ÚÔÚÇ°
+ 117   1        CSN = 1;                                        
+ 118   1      
+ 119   1        return(status);    
+ 120   1      }
+ 121          
+ 122          
+ 123          /********************************************************
+ 124          º¯Êý¹¦ÄÜ£ºSI24R1½ÓÊÕÄ£Ê½³õÊ¼»¯                      
+ 125          Èë¿Ú²ÎÊý£ºÎÞ
+ 126          ·µ»Ø  Öµ£ºÎÞ
+ 127          *********************************************************/
+ 128          void SI24R1_RX_Mode(void)
+ 129          {
+ 130   1        CE = 0;
+ 131   1        SI24R1_Write_Buf(WRITE_REG + RX_ADDR_P0, TX_ADDRESS, TX_ADR_WIDTH); // ½ÓÊÕÉè±¸½ÓÊÕÍ¨µÀ0Ê¹ÓÃºÍ·¢ËÍÉè±¸ÏàÍ
+             -¬µÄ·¢ËÍµØÖ·
+ 132   1        SI24R1_Write_Reg(WRITE_REG + EN_AA, 0x01);                          // Ê¹ÄÜ½ÓÊÕÍ¨µÀ0×Ô¶¯Ó¦´ð
+ 133   1        SI24R1_Write_Reg(WRITE_REG + EN_RXADDR, 0x01);                      // Ê¹ÄÜ½ÓÊÕÍ¨µÀ0
+ 134   1        SI24R1_Write_Reg(WRITE_REG + RF_CH, 40);                            // Ñ¡ÔñÉäÆµÍ¨µÀ0x40
+ 135   1        SI24R1_Write_Reg(WRITE_REG + RX_PW_P0, TX_PLOAD_WIDTH);             // ½ÓÊÕÍ¨µÀ0Ñ¡ÔñºÍ·¢ËÍÍ¨µÀÏàÍ¬ÓÐÐ§Êý¾Ý¿í¶È
+ 136   1        SI24R1_Write_Reg(WRITE_REG + RF_SETUP, 0x0f);                       // Êý¾Ý´«ÊäÂÊ2Mbps£¬·¢Éä¹¦ÂÊ7dBm
+ 137   1        SI24R1_Write_Reg(WRITE_REG + CONFIG, 0x0f);                         // CRCÊ¹ÄÜ£¬16Î»CRCÐ£Ñé£¬ÉÏµç£¬½ÓÊÕÄ£Ê½
+ 138   1        SI24R1_Write_Reg(WRITE_REG + STATUS, 0xff);                         //Çå³ýËùÓÐµÄÖÐ¶Ï±êÖ¾Î»
+ 139   1        CE = 1;                                                             // À­¸ßCEÆô¶¯½ÓÊÕÉè±¸
+ 140   1      }           
+ 141          
+ 142          
+ 143          /********************************************************
+ 144          º¯Êý¹¦ÄÜ£ºSI24R1·¢ËÍÄ£Ê½³õÊ¼»¯                      
+ 145          Èë¿Ú²ÎÊý£ºÎÞ
+ 146          ·µ»Ø  Öµ£ºÎÞ
+ 147          *********************************************************/
+ 148          void SI24R1_TX_Mode(void)
+ 149          {
+ 150   1        CE = 0;
+ 151   1        SI24R1_Write_Buf(WRITE_REG + TX_ADDR, TX_ADDRESS, TX_ADR_WIDTH);     // Ð´Èë·¢ËÍµØÖ·
+ 152   1        SI24R1_Write_Buf(WRITE_REG + RX_ADDR_P0, TX_ADDRESS, TX_ADR_WIDTH);  // ÎªÁËÓ¦´ð½ÓÊÕÉè±¸£¬½ÓÊÕÍ¨µÀ0µØÖ·ºÍ
+             -·¢ËÍµØÖ·ÏàÍ¬
+ 153   1      
+ 154   1        SI24R1_Write_Reg(WRITE_REG + EN_AA, 0x01);                            // Ê¹ÄÜ½ÓÊÕÍ¨µÀ0×Ô¶¯Ó¦´ð
+ 155   1        SI24R1_Write_Reg(WRITE_REG + EN_RXADDR, 0x01);                        // Ê¹ÄÜ½ÓÊÕÍ¨µÀ0
+ 156   1        SI24R1_Write_Reg(WRITE_REG + SETUP_RETR, 0x0a);                       // ×Ô¶¯ÖØ·¢ÑÓÊ±µÈ´ý250us+86us£¬×Ô¶¯ÖØ·¢10´Î
+ 157   1        SI24R1_Write_Reg(WRITE_REG + RF_CH, 40);                              // Ñ¡ÔñÉäÆµÍ¨µÀ0x40
+ 158   1        SI24R1_Write_Reg(WRITE_REG + RF_SETUP, 0x0f);                         // Êý¾Ý´«ÊäÂÊ2Mbps£¬·¢Éä¹¦ÂÊ7dBm
+ 159   1        SI24R1_Write_Reg(WRITE_REG + CONFIG, 0x0e);                           // CRCÊ¹ÄÜ£¬16Î»CRCÐ£Ñé£¬ÉÏµç
+ 160   1        //CE = 1;
+ 161   1      }
+ 162          
+ 163          
+ 164          /********************************************************
+ 165          º¯Êý¹¦ÄÜ£º¶ÁÈ¡½ÓÊÕÊý¾Ý                       
+ 166          Èë¿Ú²ÎÊý£ºrxbuf:½ÓÊÕÊý¾Ý´æ·ÅÊ×µØÖ·
+ 167          ·µ»Ø  Öµ£º0:½ÓÊÕµ½Êý¾Ý
+ 168                    1:Ã»ÓÐ½ÓÊÕµ½Êý¾Ý
+ 169          *********************************************************/
+ 170          u8 SI24R1_RxPacket(u8 *rxbuf)
+ 171          {
+ 172   1        u8 state;
+ 173   1        state = SI24R1_Read_Reg(STATUS);                         //¶ÁÈ¡×´Ì¬¼Ä´æÆ÷µÄÖµ       
+ 174   1        SI24R1_Write_Reg(WRITE_REG+STATUS,state);               //Çå³ýRX_DSÖÐ¶Ï±êÖ¾
+ 175   1      
+C51 COMPILER V9.60.0.0   SI24R1                                                            08/27/2021 05:21:57 PAGE 4   
+
+ 176   1        if(state & RX_DR)                                          //½ÓÊÕµ½Êý¾Ý
+ 177   1        {
+ 178   2          SI24R1_Read_Buf(RD_RX_PLOAD,rxbuf,TX_PLOAD_WIDTH);     //¶ÁÈ¡Êý¾Ý
+ 179   2          SI24R1_Write_Reg(FLUSH_RX,0xff);                        //Çå³ýRX FIFO¼Ä´æÆ÷
+ 180   2          return 0; 
+ 181   2        }    
+ 182   1        return 1;                                                   //Ã»ÊÕµ½ÈÎºÎÊý¾Ý
+ 183   1      }
+ 184          
+ 185          
+ 186          /********************************************************
+ 187          º¯Êý¹¦ÄÜ£º·¢ËÍÒ»¸öÊý¾Ý°ü                      
+ 188          Èë¿Ú²ÎÊý£ºtxbuf:Òª·¢ËÍµÄÊý¾Ý
+ 189          ·µ»Ø  Öµ£º0x10:´ïµ½×î´óÖØ·¢´ÎÊý£¬·¢ËÍÊ§°Ü 
+ 190                    0x20:·¢ËÍ³É¹¦            
+ 191                    0xff:·¢ËÍÊ§°Ü                  
+ 192          *********************************************************/
+ 193          u8 SI24R1_TxPacket(u8 *txbuf)
+ 194          {
+ 195   1        u8 state;
+ 196   1        CE=0;                                                     //CEÀ­µÍ£¬Ê¹ÄÜSI24R1ÅäÖÃ
+ 197   1        SI24R1_Write_Buf(WR_TX_PLOAD, txbuf, TX_PLOAD_WIDTH);     //Ð´Êý¾Ýµ½TX FIFO,32¸ö×Ö½Ú
+ 198   1        CE=1;                                                     //CEÖÃ¸ß£¬Ê¹ÄÜ·¢ËÍ     
+ 199   1        
+ 200   1        while(IRQ == 1);                                          //µÈ´ý·¢ËÍÍê³É
+ 201   1        state = SI24R1_Read_Reg(STATUS);                          //¶ÁÈ¡×´Ì¬¼Ä´æÆ÷µÄÖµ     
+ 202   1        SI24R1_Write_Reg(WRITE_REG+STATUS, state);                //Çå³ýTX_DS»òMAX_RTÖÐ¶Ï±êÖ¾
+ 203   1        if(state&MAX_RT)                                          //´ïµ½×î´óÖØ·¢´ÎÊý
+ 204   1        {
+ 205   2          SI24R1_Write_Reg(FLUSH_TX,0xff);                        //Çå³ýTX FIFO¼Ä´æÆ÷ 
+ 206   2          return MAX_RT; 
+ 207   2        }
+ 208   1        if(state&TX_DS)                                           //·¢ËÍÍê³É
+ 209   1        {
+ 210   2          return TX_DS;
+ 211   2        }
+ 212   1        return 0XFF;                                              //·¢ËÍÊ§°Ü
+ 213   1      }
+ 214          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    393    ----
+   CONSTANT SIZE    =      5    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      13
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)

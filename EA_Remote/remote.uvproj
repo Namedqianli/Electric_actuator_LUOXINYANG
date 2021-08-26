@@ -401,6 +401,11 @@
               <FileType>1</FileType>
               <FilePath>.\key\key.c</FilePath>
             </File>
+            <File>
+              <FileName>SI24R1.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\nrf24l01\SI24R1.c</FilePath>
+            </File>
           </Files>
         </Group>
       </Groups>

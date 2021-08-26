@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.0.0   NRF24L01                                                          08/26/2021 20:12:51 PAGE 1   
+C51 COMPILER V9.60.0.0   NRF24L01                                                          08/27/2021 04:59:37 PAGE 1   
 
 
 C51 COMPILER V9.60.0.0, COMPILATION OF MODULE NRF24L01
@@ -63,7 +63,7 @@ line level    source
   51   1          SCLK=0;
   52   1          IRQ=1;
   53   1      }
-C51 COMPILER V9.60.0.0   NRF24L01                                                          08/26/2021 20:12:51 PAGE 2   
+C51 COMPILER V9.60.0.0   NRF24L01                                                          08/27/2021 04:59:37 PAGE 2   
 
   54          /*****************SPI读寄存器一字节函数*********************************/
   55          unchar NRFReadReg(unchar RegAddr)
@@ -127,7 +127,7 @@ line level    source
  111   1          NRFWriteReg(W_REGISTER+RF_CH,0x40);         // 选择射频通道0x40
  112   1          NRFWriteReg(W_REGISTER+RF_SETUP,0x07);    // 数据传输率1Mbps，发射功率0dBm，低噪声放大器增益
  113   1          NRFWriteReg(W_REGISTER+CONFIG,0x0e);      // CRC使能，16位CRC校验，上电
-C51 COMPILER V9.60.0.0   NRF24L01                                                          08/26/2021 20:12:51 PAGE 3   
+C51 COMPILER V9.60.0.0   NRF24L01                                                          08/27/2021 04:59:37 PAGE 3   
 
  114   1          CE=1;
  115   1          NRFDelay(10);//保持10us秒以上
@@ -191,7 +191,7 @@ line level    source
  171   1        if(i!=5)return 1;//检测24L01错误  
  172   1        return 0;     //检测到24L01
  173   1      } 
-C51 COMPILER V9.60.0.0   NRF24L01                                                          08/26/2021 20:12:51 PAGE 4   
+C51 COMPILER V9.60.0.0   NRF24L01                                                          08/27/2021 04:59:37 PAGE 4   
 
 
 

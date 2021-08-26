@@ -98,7 +98,7 @@ int main(void)
   MX_TIM8_Init();
   /* USER CODE BEGIN 2 */
 	NRF24L01_Init();
-	NRF24L01_TX_Mode();
+	NRF24L01_RX_Mode();
 	while(NRF24L01_Check()) {
 		printf("check error!\n");
 	}
@@ -129,14 +129,16 @@ int main(void)
 //		ActuatorMoveMmSync(ACTUATOR1, -10);
 //		HAL_Delay(1000);
 		
-//		uint8_t buf[16];
-//		if (0 == NRF24L01_RxPacket(buf)) {
-//			printf("%s\n", buf);
-//		}
-		
-		if(NRF24L01_TxPacket("aaaaaaa") == TX_OK) {
-			printf("send sccuessed\n");
+		uint8_t buf[16];
+		if (0 == NRF24L01_RxPacket(buf)) {
+			printf("%s\n", buf);
 		}
+//		uint8_t d = NRF24L01_TxPacket("aaaaaaa");
+//		if(d == TX_OK) {
+//			printf("send sccuessed\n");
+//		} else {
+//			printf("%d\n", d);
+//		}
 		HAL_Delay(2000);
     /* USER CODE END WHILE */
 

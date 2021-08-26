@@ -1,6 +1,7 @@
 #include "reg52.h"
 #include "stdio.h"
 #include "nrf24l01.h"
+#include "SI24R1.h"
 #include "key.h"
 
 #define uchar unsigned char
@@ -16,18 +17,23 @@ uchar str[] = {"aaaaaaa"};
 void main()
 {
 	uart_cfg(); //²¨ÌØÂÊ4800    ,0xf9
-	NRF24L01Int();
-	while(NRF24L01_Check())
-		send_string("Error\n");
-	send_string("Successed!\n");
-	NRFSetRXMode();
-
+//	NRF24L01Int();
+//	while(NRF24L01_Check())
+//		send_string("Error\n");
+//	send_string("Successed!\n");
+//	NRFSetRXMode();
+	SI24R1_Init();
+	SI24R1_TX_Mode();
 	while(1){
-		if(NRFRevDate(str)) {
-			send_string(str);
-		}			
+//		if(NRFRevDate(str)) {
+//			send_string(str);
+//		}			
 //		NRFSetTxMode(str);
 //		NRFDelay(1000);
+//		if(!SI24R1_RxPacket(str)) {
+//			send_string(str);
+//		}
+		SI24R1_TxPacket("a");
 	}
 }
 
