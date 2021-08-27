@@ -16,6 +16,8 @@ typedef enum
 	KEY_BED						= 6,
 }action_t;
 
+
+void key_delay(uint8_t t);
 uint8_t key_scan(uint8_t mode);
 
 #endif

@@ -12,28 +12,18 @@ void send_byte(uchar by);
 void send_string(uchar *p);
 void delayms(uchar i);
 
-uchar str[] = {"aaaaaaa"};
-
 void main()
 {
+	uint8_t key_num = 0;
+	
 	uart_cfg(); //²¨ÌØÂÊ4800    ,0xf9
-//	NRF24L01Int();
-//	while(NRF24L01_Check())
-//		send_string("Error\n");
-//	send_string("Successed!\n");
-//	NRFSetRXMode();
 	SI24R1_Init();
 	SI24R1_TX_Mode();
 	while(1){
-//		if(NRFRevDate(str)) {
-//			send_string(str);
-//		}			
-//		NRFSetTxMode(str);
-//		NRFDelay(1000);
-//		if(!SI24R1_RxPacket(str)) {
-//			send_string(str);
-//		}
-		SI24R1_TxPacket("a");
+		key_num = key_scan(1);
+		if(key_num != 0xff) {
+			SI24R1_TxPacket(&key_num);
+		}
 	}
 }
 
