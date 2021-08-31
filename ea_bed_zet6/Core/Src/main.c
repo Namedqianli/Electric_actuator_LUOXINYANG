@@ -30,15 +30,29 @@
 #include "nrf24l01/bsp_nrf24l01.h"
 #include "actuator/bsp_actuator.h"
 #include "key/bsp_key.h"
+#include "global_config.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+typedef enum 
+{
+	SIGNAL_BACK_UP				= 0x01,				//抬背
+	SIGNAL_BACK_DOWN			= 0x02,				//降背
+	SIGNAL_FOOT_UP				= 0x03,				//抬腿
+	SIGNAL_FOOT_DOWN			= 0x04,				//降腿
+	SIGNAL_ROTATE_CHAIR		= 0x05,				//侧坐下床，旋转成椅
+	SIGNAL_ROTATE_BED			= 0x06,				//上床平躺
+	SIGNAL_PART_MOVE			= 0x07,				//分离移动
+	SIGNAL_RESET					= 0x08,				//一键平躺	
+	SIGNAL_MAX						= 0x09,
+} receive_signal_t;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define LOCK()					HAL_GPIO_WritePin(GPIOF, GPIO_PIN_10, GPIO_PIN_SET);
+#define UNLOCK()				HAL_GPIO_WritePin(GPIOF, GPIO_PIN_10, GPIO_PIN_RESET);
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -49,7 +63,9 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+__IO uint16_t time_count				= 0;
+uint8_t recv_signal 						= 0;
+__IO uint8_t now_state 					= 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -70,7 +86,7 @@ void SystemClock_Config(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+	__IO uint8_t pre_recv_signal		= SIGNAL_MAX;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -110,36 +126,159 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-//		if(KEY0_StateRead() == KEY_DOWN) {
-//			static int f = 1;
-//			if(f) {
-//				__HAL_TIM_SET_COUNTER(&htim1,0xFFFF);
-//				SetActuatorDir(ACTUATOR1, DIR_PUSH);
-//				StartRunning(ACTUATOR1);
-//				f = 0;
-//			} else {
-//				__HAL_TIM_SET_COUNTER(&htim1,0);
-//				SetActuatorDir(ACTUATOR1, DIR_BACK);
-//				StartRunning(ACTUATOR1);
-//				f = 1;
-//			}
-//		}
-//		ActuatorMoveMmSync(ACTUATOR1, 20);
-//		HAL_Delay(1000);
-//		ActuatorMoveMmSync(ACTUATOR1, -10);
-//		HAL_Delay(1000);
-		
-		uint8_t buf[16];
-		if (0 == NRF24L01_RxPacket(buf)) {
-			printf("%s\n", buf);
+		if(NRF24L01_RxPacket(&recv_signal) != 1) {
+			//接收到信号
+			#if DEBUG_INFO
+				printf("pre: %d recv: %d\n", pre_recv_signal, recv_signal);
+			#endif
+			#if TYPE == TYPE_BED
+				switch (recv_signal) {
+	//					case SIGNAL_BACK_UP:
+	//						time_count = 0;
+	//						ActuatorStart(ACTUATOR1, DIR_PUSH);
+	//						break;
+	//					case SIGNAL_BACK_DOWN:
+	//						time_count = 0;
+	//						ActuatorStart(ACTUATOR1, DIR_BACK);
+	//						break;
+					case SIGNAL_RESET:
+						//goto 0
+						ActuatorMoveToMin(ACTUATOR1);
+						break;
+					case SIGNAL_ROTATE_CHAIR:
+						//actuator move xmm
+						ActuatorMoveMmSync(ACTUATOR1, 20);
+						break;
+					case SIGNAL_ROTATE_BED:
+						ActuatorMoveMmSync(ACTUATOR1, -20);
+						break;
+					case SIGNAL_PART_MOVE:
+						//actuator move xmm
+						//ulock
+						UNLOCK();
+						break;
+					default:
+						break;
+				}
+				now_state = recv_signal;
+			#elif TYPE == TYPE_CHAIR
+				switch (recv_signal) {
+					case SIGNAL_BACK_UP:
+						//抬背
+						#if DEBUG_INFO
+							printf("Start Moto1 pre:%d recv:%d\n", pre_recv_signal, recv_signal);
+						#endif
+						time_count = 0;
+						if(pre_recv_signal == SIGNAL_BACK_UP) {
+							break;
+						}
+						ActuatorStart(ACTUATOR1, DIR_PUSH);
+						break;
+					case SIGNAL_BACK_DOWN:
+						//降背
+						time_count = 0;
+						if(pre_recv_signal == SIGNAL_BACK_DOWN) {
+							break;
+						}
+						ActuatorStart(ACTUATOR1, DIR_BACK);
+						break;
+					case SIGNAL_FOOT_UP:
+						//抬腿
+						time_count = 0;
+						if(pre_recv_signal == SIGNAL_FOOT_UP) {
+							break;
+						}
+						ActuatorStart(ACTUATOR2, DIR_PUSH);
+						break;
+					case SIGNAL_FOOT_DOWN:
+						//降腿
+						time_count = 0;
+						if(pre_recv_signal == SIGNAL_FOOT_DOWN) {
+							break;
+						}
+						ActuatorStart(ACTUATOR2, DIR_BACK);
+						break;
+					case SIGNAL_RESET:
+						//goto 0
+						break;
+					case SIGNAL_ROTATE_CHAIR:
+						/* 旋转成椅 */
+						//actuator move xmm
+						if(now_state != SIGNAL_ROTATE_CHAIR && now_state != SIGNAL_PART_MOVE) {
+							//抬背75
+							ActuatorMoveMmSync(ACTUATOR1, 10);
+							//抬腿15
+							ActuatorMoveMmSync(ACTUATOR2, 10);
+							//旋转90（逆时针）
+							ActuatorMoveMmSync(ACTUATOR3, 10);
+							//大腿0，小腿80
+							ActuatorMoveMmSync(ACTUATOR2, -10);
+							now_state = SIGNAL_ROTATE_CHAIR;
+						}
+						break;
+					case SIGNAL_ROTATE_BED:
+						/* 平躺（复原） */
+						//曲腿 0,使大腿板、脚踏板上升至15°
+						ActuatorMoveMmSync(ACTUATOR2, 15);
+						//旋转90（顺时针）
+						ActuatorMoveMmSync(ACTUATOR3, -10);
+						//分离推杆，向床平移
+						//使大腿板、脚踏板抬复原至0°
+						ActuatorMoveMmSync(ACTUATOR2, -15);
+						break;
+					case SIGNAL_PART_MOVE:
+						if(now_state == SIGNAL_ROTATE_CHAIR && now_state == SIGNAL_MAX) {
+							//旋转成椅
+							//抬背75
+							ActuatorMoveMmSync(ACTUATOR1, 10);
+							//抬腿15
+							ActuatorMoveMmSync(ACTUATOR2, 10);
+							//旋转90（逆时针）
+							ActuatorMoveMmSync(ACTUATOR3, 10);
+							//大腿0，小腿80
+							ActuatorMoveMmSync(ACTUATOR2, -10);
+							//分离
+							//ActuatorMoveMmSync();
+							now_state = SIGNAL_PART_MOVE;
+						}
+						break;
+					default:
+						break;
+				}
+				#if DEBUG_INFO
+					printf("pre1:%d\n", pre_recv_signal);
+				#endif
+				pre_recv_signal = recv_signal;
+				#if DEBUG_INFO
+					printf("pre2:%d\n", pre_recv_signal);
+				#endif
+			#endif
 		}
-//		uint8_t d = NRF24L01_TxPacket("aaaaaaa");
-//		if(d == TX_OK) {
-//			printf("send sccuessed\n");
-//		} else {
-//			printf("%d\n", d);
-//		}
-		HAL_Delay(2000);
+		#if TYPE == TYPE_BED
+			if(now_state == SIGNAL_BACK_UP || now_state == SIGNAL_BACK_UP) {
+				HAL_Delay(1);
+				time_count++;
+				if(time_count == 100) {
+					time_count = 0;
+					ActuatorStop(ACTUATOR1);
+				}
+			}
+		#elif TYPE == TYPE_CHAIR
+			if(pre_recv_signal == SIGNAL_BACK_UP || pre_recv_signal == SIGNAL_BACK_DOWN ||
+					pre_recv_signal == SIGNAL_FOOT_UP || pre_recv_signal == SIGNAL_FOOT_DOWN) {
+				HAL_Delay(1);
+				time_count++;
+				if(time_count == 100) {
+					#if DEBUG_INFO
+						printf("Stop Running!\n");
+					#endif
+					pre_recv_signal = SIGNAL_MAX;
+					time_count = 0;
+					ActuatorStop(ACTUATOR1);
+					ActuatorStop(ACTUATOR2);
+				}
+			}
+		#endif
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

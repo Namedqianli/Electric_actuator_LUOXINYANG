@@ -42,6 +42,7 @@ void SetActuatorDir(uint8_t index, uint8_t dir)
 	uint8_t gpio_output = 0;
 	
 	StopRunning(index);
+	actuator[index].dir = dir;
 	HAL_Delay(100);
 	if(dir == DIR_PUSH) {
 		gpio_output = GPIO_PIN_RESET;
@@ -66,6 +67,7 @@ void SetActuatorDir(uint8_t index, uint8_t dir)
 }
 void StartRunning(uint8_t index)
 {
+	actuator[index].is_running = true;
 	switch (index) {
 		case ACTUATOR1:
 			HAL_GPIO_WritePin(ACTUATOR1_EN_GPIO_PORT, ACTUATOR1_EN_GPIO_PIN, GPIO_PIN_SET);
@@ -81,6 +83,7 @@ void StartRunning(uint8_t index)
 
 void StopRunning(uint8_t index)
 {
+	actuator[index].is_running = false;
 	switch (index) {
 		case ACTUATOR1:
 			HAL_GPIO_WritePin(ACTUATOR1_EN_GPIO_PORT, ACTUATOR1_EN_GPIO_PIN, GPIO_PIN_RESET);
@@ -99,9 +102,14 @@ void ACTUATOR_Init()
 	memset((void *)actuator, 0, sizeof(actuator));
 	#if TYPE == TYPE_BED
 		actuator[0].total_pulse = ACTUATOR_MAX_PULSE_150328;
-		actuator[1].resolution = 22.3;
+		actuator[0].resolution = 22.3;
 	#elif TYPE == TYPE_CHAIR
-		
+		actuator[0].total_pulse = ACTUATOR_MAX_PULSE_100278;
+		actuator[0].resolution = 22.3;
+		actuator[1].total_pulse = ACTUATOR_MAX_PULSE_100278;
+		actuator[1].resolution = 22.3;
+		actuator[2].total_pulse = ACTUATOR_MAX_PULSE_300499;
+		actuator[2].resolution = 15.0;
 	#endif
 	actuator[0].handler = &htim1;
 	actuator[1].handler = &htim4;
@@ -119,11 +127,11 @@ void ActuatorMoveMmSync(uint8_t index, int32_t length)
 	if(length > 0) {
 		actuator[index].dir = DIR_PUSH;			//SET dir
 		//calculator pulse
-		actuator[index].target_pulse = (uint32_t)(actuator[1].resolution*length);
+		actuator[index].target_pulse = (uint32_t)(actuator[index].resolution*length);
 	} else {
 		actuator[index].dir = DIR_BACK;			//SET dir
 		//calculator pulse
-		actuator[index].target_pulse = (uint32_t)(actuator[1].resolution*length*-1);
+		actuator[index].target_pulse = (uint32_t)(actuator[index].resolution*length*-1);
 	}
 	actuator[index].target_pulse *= 4;
 	#if DEBUG_INFO
@@ -133,8 +141,8 @@ void ActuatorMoveMmSync(uint8_t index, int32_t length)
 	if(actuator[index].dir == DIR_PUSH) {
 		actuator[index].target_pulse = 
 			(actuator[index].target_pulse + actuator[index].now_pulse) < actuator[index].total_pulse ? actuator[index].target_pulse : 
-				(int32_t)(actuator[index].now_pulse + actuator[index].target_pulse - actuator[index].total_pulse) > 0 ? 
-					(actuator[index].now_pulse + actuator[index].target_pulse - actuator[index].total_pulse) : 0;
+				actuator[index].now_pulse < actuator[index].total_pulse ? 
+					(actuator[index].total_pulse - actuator[index].now_pulse) : 0;
 	} else if(actuator[index].dir == DIR_BACK) {
 		actuator[index].target_pulse = 
 			(int32_t)(actuator[index].now_pulse - actuator[index].target_pulse) >= 0 ? actuator[index].target_pulse : actuator[index].now_pulse;
@@ -153,6 +161,11 @@ void ActuatorMoveMmSync(uint8_t index, int32_t length)
 				printf("moto: %d target count: %d count: %d\n", 
 					index,(0xFF00 - actuator[index].target_pulse), __HAL_TIM_GET_COUNTER(actuator[index].handler));
 			#endif
+			uint32_t pulse = __HAL_TIM_GET_COUNTER(actuator[index].handler);
+			HAL_Delay(100);
+			if(pulse == __HAL_TIM_GET_COUNTER(actuator[index].handler)) {
+				break;
+			}			
 		}
 		StopRunning(index);
 		actuator[index].now_pulse += (0xFF00 - __HAL_TIM_GET_COUNTER(actuator[index].handler));
@@ -166,6 +179,11 @@ void ActuatorMoveMmSync(uint8_t index, int32_t length)
 				printf("moto: %d target_count: %d count: %d\n", 
 					index, actuator[index].target_pulse, __HAL_TIM_GET_COUNTER(actuator[index].handler));
 			#endif
+			uint32_t pulse = __HAL_TIM_GET_COUNTER(actuator[index].handler);
+			HAL_Delay(100);
+			if(pulse == __HAL_TIM_GET_COUNTER(actuator[index].handler)) {
+				break;
+			}
 		}
 		StopRunning(index);
 		actuator[index].now_pulse -= __HAL_TIM_GET_COUNTER(actuator[index].handler);
@@ -175,6 +193,53 @@ void ActuatorMoveMmSync(uint8_t index, int32_t length)
 	#endif
 }
 
+//unused function
 void ActuatorMoveMmAsync(uint8_t index, int32_t length);
-void ActuatorStart(uint8_t index, uint8_t dir);
-void ActuatorStop(uint8_t index);
+
+void ActuatorStart(uint8_t index, uint8_t dir)
+{
+	switch(dir) {
+		case DIR_PUSH:
+			__HAL_TIM_SET_COUNTER(actuator[index].handler,0xFF00);
+			break;
+		case DIR_BACK:
+			__HAL_TIM_SET_COUNTER(actuator[index].handler,1000);
+			break;
+		default:
+			break;
+	}
+	SetActuatorDir(index, dir);
+	StartRunning(index);
+}
+
+void ActuatorStop(uint8_t index)
+{
+	StopRunning(index);
+	switch(actuator[index].dir) {
+		case DIR_PUSH:
+			actuator[index].total_pulse += (0xFF00 - __HAL_TIM_GET_COUNTER(actuator[index].handler));
+			break;
+		case DIR_BACK:
+			actuator[index].total_pulse -= (__HAL_TIM_GET_COUNTER(actuator[index].handler) - 1000);
+			break;
+		default:
+			break;
+	}
+}
+
+void ActuatorMoveToMin(uint8_t index)
+{
+	uint32_t pulse = 0;
+	
+	SetActuatorDir(index, DIR_BACK);
+	StartRunning(index);
+	while(1) {
+		pulse = __HAL_TIM_GET_COUNTER(actuator[index].handler);
+		HAL_Delay(500);
+		if(pulse == __HAL_TIM_GET_COUNTER(actuator[index].handler)) {
+			break;
+		}			
+	}
+	actuator[index].now_pulse = 0;
+	StopRunning(index);
+}

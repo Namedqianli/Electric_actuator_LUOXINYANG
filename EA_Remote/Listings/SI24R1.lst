@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.0.0   SI24R1                                                            08/27/2021 05:21:57 PAGE 1   
+C51 COMPILER V9.60.0.0   SI24R1                                                            08/28/2021 05:10:05 PAGE 1   
 
 
 C51 COMPILER V9.60.0.0, COMPILATION OF MODULE SI24R1
@@ -63,7 +63,7 @@ line level    source
   51          {
   52   1        u8 status;
   53   1      
-C51 COMPILER V9.60.0.0   SI24R1                                                            08/27/2021 05:21:57 PAGE 2   
+C51 COMPILER V9.60.0.0   SI24R1                                                            08/28/2021 05:10:05 PAGE 2   
 
   54   1        CSN = 0;                 
   55   1        status = SPI_RW(reg);       
@@ -127,7 +127,7 @@ line level    source
  113   1        CSN = 0;                                        
  114   1        status = SPI_RW(reg);                           
  115   1        for(byte_ctr=0;byte_ctr<bytes;byte_ctr++)
-C51 COMPILER V9.60.0.0   SI24R1                                                            08/27/2021 05:21:57 PAGE 3   
+C51 COMPILER V9.60.0.0   SI24R1                                                            08/28/2021 05:10:05 PAGE 3   
 
  116   1          pBuf[byte_ctr] = SPI_RW(0);                   //读取数据，低字节在前
  117   1        CSN = 1;                                        
@@ -191,7 +191,7 @@ line level    source
  173   1        state = SI24R1_Read_Reg(STATUS);                         //读取状态寄存器的值       
  174   1        SI24R1_Write_Reg(WRITE_REG+STATUS,state);               //清除RX_DS中断标志
  175   1      
-C51 COMPILER V9.60.0.0   SI24R1                                                            08/27/2021 05:21:57 PAGE 4   
+C51 COMPILER V9.60.0.0   SI24R1                                                            08/28/2021 05:10:05 PAGE 4   
 
  176   1        if(state & RX_DR)                                          //接收到数据
  177   1        {

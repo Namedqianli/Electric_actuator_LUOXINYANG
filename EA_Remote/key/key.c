@@ -37,8 +37,8 @@ uint8_t key_scan(uint8_t mode)
 	static uchar key_up = 1;
 	
 	if(mode == 1) key_up = 1;
-	
-	if(key_up && P2 == 0x00) {
+	P2 = 0xFF;
+	if(key_up && P2 != 0xFF) {
 		key_delay(20);
 		key_up = 0;
 		if(KEY1 == 0)	return SIGNAL_BACK_UP;

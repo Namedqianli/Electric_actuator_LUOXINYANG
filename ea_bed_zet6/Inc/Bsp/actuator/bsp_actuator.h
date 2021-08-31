@@ -30,6 +30,12 @@ typedef enum
 	DIR_PUSH,
 	DIR_BACK,
 } actuator_dir_t;
+
+enum
+{
+	false = 0,
+	true = 1,
+};
 /* ÀΩ”–∫Í∂®“Â ----------------------------------------------------------------*/
 #define ACTUATOR_MAX_LENGTH_300499						300	//mm
 #define ACTUATOR_MAX_LENGTH_150328						150	//mm
@@ -71,5 +77,6 @@ void ActuatorMoveMmSync(uint8_t index, int32_t length);
 void ActuatorMoveMmAsync(uint8_t index, int32_t length);
 void ActuatorStart(uint8_t index, uint8_t dir);
 void ActuatorStop(uint8_t index);
+void ActuatorMoveToMin(uint8_t index);
 
 #endif

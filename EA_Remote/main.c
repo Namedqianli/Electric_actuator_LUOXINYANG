@@ -5,7 +5,9 @@
 #include "key.h"
 
 #define uchar unsigned char
-#define uint unsigned int 
+#define uint 	unsigned int 
+
+sbit LED = P3^4;
 
 void uart_cfg();
 void send_byte(uchar by);
@@ -22,8 +24,10 @@ void main()
 	while(1){
 		key_num = key_scan(1);
 		if(key_num != 0xff) {
+			LED = 0;
 			SI24R1_TxPacket(&key_num);
 		}
+		LED = 1;
 	}
 }
 

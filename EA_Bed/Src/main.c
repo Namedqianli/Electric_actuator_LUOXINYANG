@@ -32,18 +32,14 @@
 #define ENCODER2_PPR         (ENCODER2_SPEEDRATIO*ENCODER2_LINE*4) // Pulse/r 每圈可捕获的脉冲数
 typedef enum 
 {
-	SIGNAL_BACK_UP,
-	SIGNAL_BACK_DOWN,
-	SIGNAL_FOOT_UP,
-	SIGNAL_FOOT_DOWN,
-	SIGNAL_ROTATE,
-	SIGNAL_ROTATE_BACK,
-	SIGNAL_PUSH,
-	SIGNAL_PUSH_BACK,
-	SIGNAL_ROTATE_CHAIR,
-	SIGNAL_PART_BED_CHAIR,
-	SIGNAL_RETURN,
-	SIGNAL_RESET,
+	SIGNAL_BACK_UP				= 0x01,				//抬背
+	SIGNAL_BACK_DOWN			= 0x02,				//降背
+	SIGNAL_FOOT_UP				= 0x03,				//抬腿
+	SIGNAL_FOOT_DOWN			= 0x04,				//降腿
+	SIGNAL_ROTATE_CHAIR		= 0x05,				//侧坐下床，旋转成椅
+	SIGNAL_ROTATE_BED			= 0x06,				//上床平躺
+	SIGNAL_PART_MOVE			= 0x07,				//分离移动
+	SIGNAL_RESET					= 0x08,				//一键平躺						
 } receive_signal_t;
 /* 私有宏定义 ----------------------------------------------------------------*/
 /* 私有变量 ------------------------------------------------------------------*/

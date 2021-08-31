@@ -2,7 +2,7 @@
 
 #define TYPE_BED				0
 #define TYPE_CHAIR			1
-#define TYPE						TYPE_BED
+#define TYPE						TYPE_CHAIR
 
 #define DEBUG_INFO			1
 
